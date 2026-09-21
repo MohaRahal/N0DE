@@ -215,6 +215,93 @@ export const workflows: Workflow[] = [
       { title: 'Inspect HTTP', command: 'curl -vI https://<domain>', description: 'Shows connection, TLS, and response headers.' },
     ],
   },
+  {
+    id: 'network-inventory', category: 'networking', level: 'basic', title: 'Inspect a Linux network',
+    description: 'Collect the essential interface, address, gateway, DNS, neighbor, and port information.', result: 'A complete snapshot of the machine network configuration.',
+    steps: [
+      { title: 'Show interface summary', command: 'ip -br link', description: 'Displays every interface and whether its link is UP or DOWN.' },
+      { title: 'Show assigned addresses', command: 'ip -br address', description: 'Lists IPv4 and IPv6 addresses in a compact view.' },
+      { title: 'Find the default gateway', command: 'ip route show default', description: 'Shows where traffic leaves the local network.' },
+      { title: 'Inspect all routes', command: 'ip route show', description: 'Lists connected, static, and default routes.' },
+      { title: 'Inspect DNS', command: 'resolvectl status', description: 'Shows the DNS server selected for each link.' },
+      { title: 'Show nearby devices', command: 'ip neighbor show', description: 'Displays known IPv4 and IPv6 neighbors.' },
+      { title: 'Show listening services', command: 'sudo ss -tulpn', description: 'Maps listening ports to their processes.' },
+    ],
+  },
+  {
+    id: 'network-netplan-static', category: 'networking', level: 'advanced', title: 'Configure a static IP with Netplan',
+    description: 'Safely configure a persistent address, gateway, and DNS on Ubuntu.', result: 'A persistent static address validated with rollback protection.',
+    steps: [
+      { title: 'Identify the interface', command: 'ip -br link && ip -br address', description: 'Replace enp0s3 below with the real interface name.' },
+      { title: 'List Netplan files', command: 'ls -la /etc/netplan', description: 'Finds the active YAML filename before making changes.' },
+      { title: 'Create a backup', command: 'sudo cp /etc/netplan/01-netcfg.yaml /etc/netplan/01-netcfg.yaml.bak', description: 'Adjust the filename to match the previous command. Never edit without a backup.' },
+      { title: 'Write the static configuration', command: `sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<'EOF'
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      dhcp4: false
+      addresses:
+        - 192.168.1.50/24
+      routes:
+        - to: default
+          via: 192.168.1.1
+      nameservers:
+        addresses: [1.1.1.1, 8.8.8.8]
+EOF`, description: 'Change the interface, address, prefix, gateway, and DNS values for your network.' },
+      { title: 'Protect the configuration', command: 'sudo chmod 600 /etc/netplan/01-netcfg.yaml', description: 'Netplan expects configuration files to have restricted permissions.' },
+      { title: 'Validate YAML and backend', command: 'sudo netplan generate', description: 'Stops here if indentation, keys, or values are invalid.' },
+      { title: 'Test with automatic rollback', command: 'sudo netplan try', description: 'Confirm only if connectivity still works. It rolls back after the timeout otherwise.' },
+      { title: 'Apply permanently', command: 'sudo netplan apply', description: 'Makes the validated configuration active.' },
+      { title: 'Verify everything', command: 'ip -br address && ip route && resolvectl status', description: 'Confirms the address, gateway, and DNS configuration.' },
+    ],
+  },
+  {
+    id: 'network-netplan-dhcp', category: 'networking', level: 'basic', title: 'Configure DHCP with Netplan',
+    description: 'Return an Ubuntu interface to automatic IP, gateway, and DNS configuration.', result: 'The interface receives its network settings automatically through DHCP.',
+    steps: [
+      { title: 'Find the interface name', command: 'ip -br link', description: 'Use the real interface name instead of enp0s3.' },
+      { title: 'Back up the current file', command: 'sudo cp /etc/netplan/01-netcfg.yaml /etc/netplan/01-netcfg.yaml.bak', description: 'Adjust the filename if your Netplan file has another name.' },
+      { title: 'Write the DHCP configuration', command: `sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<'EOF'
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      dhcp4: true
+EOF`, description: 'This minimal configuration asks the network DHCP server for settings.' },
+      { title: 'Set safe permissions', command: 'sudo chmod 600 /etc/netplan/01-netcfg.yaml', description: 'Prevents Netplan permission warnings.' },
+      { title: 'Validate the configuration', command: 'sudo netplan generate', description: 'Checks YAML and generates the networkd configuration.' },
+      { title: 'Test before committing', command: 'sudo netplan try', description: 'Accept the settings only after confirming connectivity.' },
+      { title: 'Check the DHCP result', command: 'ip -br address && ip route show default', description: 'Shows the leased address and gateway.' },
+    ],
+  },
+  {
+    id: 'network-temporary-static', category: 'networking', level: 'advanced', title: 'Set a temporary static IP',
+    description: 'Configure an address and route immediately with iproute2 without changing Netplan.', result: 'A working temporary configuration that disappears after reboot.',
+    steps: [
+      { title: 'Enable the interface', command: 'sudo ip link set enp0s3 up', description: 'Replace enp0s3 with the real interface name.' },
+      { title: 'Add the address', command: 'sudo ip address add 192.168.1.50/24 dev enp0s3', description: 'Adds an address without modifying persistent configuration.' },
+      { title: 'Add the default route', command: 'sudo ip route add default via 192.168.1.1 dev enp0s3', description: 'Directs non-local traffic through the gateway.' },
+      { title: 'Set temporary DNS', command: 'sudo resolvectl dns enp0s3 1.1.1.1 8.8.8.8', description: 'Assigns DNS servers to this link until restart or reconfiguration.' },
+      { title: 'Validate local connectivity', command: 'ping -c 3 192.168.1.1', description: 'Tests whether the configured gateway is reachable.' },
+      { title: 'Validate DNS and internet', command: 'ping -c 3 1.1.1.1 && resolvectl query example.com', description: 'Separates basic internet connectivity from DNS resolution.' },
+    ],
+  },
+  {
+    id: 'network-dns-troubleshoot', category: 'networking', level: 'advanced', title: 'Troubleshoot DNS resolution',
+    description: 'Determine whether a failure comes from connectivity, the resolver, or a specific DNS server.', result: 'A clear diagnosis of the active DNS path and failing layer.',
+    steps: [
+      { title: 'Confirm raw connectivity', command: 'ping -c 3 1.1.1.1', description: 'If this fails, solve routing or connectivity before DNS.' },
+      { title: 'Check resolver state', command: 'resolvectl status', description: 'Shows active DNS servers, protocols, and search domains.' },
+      { title: 'Query through the system', command: 'resolvectl query example.com', description: 'Tests the same resolution path applications normally use.' },
+      { title: 'Query a known server', command: 'nslookup example.com 1.1.1.1', description: 'Bypasses the configured resolver to compare results.' },
+      { title: 'Clear the local cache', command: 'sudo resolvectl flush-caches', description: 'Removes stale cached answers.' },
+      { title: 'Restart the resolver', command: 'sudo systemctl restart systemd-resolved', description: 'Restarts the local DNS resolver if its state is unhealthy.' },
+      { title: 'Review resolver logs', command: 'sudo journalctl -u systemd-resolved -n 50 --no-pager', description: 'Displays recent errors and server changes.' },
+    ],
+  },
 ]
 
 export const workflowsFor = (category: string) => workflows.filter((workflow) => workflow.category === category)
