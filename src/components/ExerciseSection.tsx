@@ -10,17 +10,18 @@ const CopyButton = ({ value, label = 'COPY', onCopied }: { value: string; label?
   return <button className="exercise-copy" onClick={copy}>{copied ? <Check /> : <Copy />}{copied ? 'COPIED' : label}</button>
 }
 
-function ExerciseCard({ exercise, onCopied }: { exercise: Exercise; onCopied: () => void }) {
+function ExerciseCard({ exercise, index, onCopied }: { exercise: Exercise; index: number; onCopied: () => void }) {
   const [solutionOpen, setSolutionOpen] = useState(false)
   const [solutionMode, setSolutionMode] = useState<'guided' | 'robust'>('guided')
   const [activeFile, setActiveFile] = useState(0)
+  const hasTwoModes = Boolean(exercise.beginnerFiles && exercise.beginnerSolution)
   const selectedFiles = solutionMode === 'guided' && exercise.beginnerFiles ? exercise.beginnerFiles : exercise.files
   const selectedSteps = solutionMode === 'guided' && exercise.beginnerSolution ? exercise.beginnerSolution : exercise.solution
   const allCommands = selectedSteps.map((step) => `# ${step.title}\n${step.command}`).join('\n\n')
   const changeMode = (mode: 'guided' | 'robust') => { setSolutionMode(mode); setActiveFile(0) }
   return <article className="exercise-card">
     <div className="exercise-hero">
-      <div className="exercise-number">LAB / 01</div><span className={`exercise-level ${exercise.difficulty}`}>{exercise.difficulty}</span>
+      <div className="exercise-number">LAB / {String(index + 1).padStart(2, '0')}</div><span className={`exercise-level ${exercise.difficulty}`}>{exercise.difficulty}</span>
       <FlaskConical className="exercise-watermark" />
       <h2>{exercise.title}</h2><p>{exercise.subtitle}</p>
     </div>
@@ -37,9 +38,9 @@ function ExerciseCard({ exercise, onCopied }: { exercise: Exercise; onCopied: ()
       <button onClick={() => setSolutionOpen((value) => !value)}>{solutionOpen ? <EyeOff /> : <Eye />}{solutionOpen ? 'Hide resolution' : 'Reveal resolution'}</button>
     </div>
     <AnimatePresence>{solutionOpen && <motion.div className="exercise-solution" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-      <div className="solution-heading"><div><span>REFERENCE_SOLUTION</span><h3>{solutionMode === 'guided' ? 'Resolução fácil, passo a passo' : 'Resolução robusta e automatizada'}</h3><p>{solutionMode === 'guided' ? 'Indicada para quem está fazendo a atividade pela primeira vez.' : 'Inicializa o volume automaticamente e evita a cópia manual do HTML.'}</p></div><CopyButton value={allCommands} label="COPY ALL COMMANDS" onCopied={onCopied} /></div>
-      <div className="solution-mode-tabs"><button className={solutionMode === 'guided' ? 'active' : ''} onClick={() => changeMode('guided')}><span>01</span><div><b>Modo fácil</b><small>Guiado, comando por comando</small></div></button><button className={solutionMode === 'robust' ? 'active' : ''} onClick={() => changeMode('robust')}><span>02</span><div><b>Modo robusto</b><small>Volume inicializado automaticamente</small></div></button></div>
-      {solutionMode === 'guided' && <div className="project-tree"><span>ESTRUTURA QUE VOCÊ VAI CRIAR</span><pre>{`atividade/
+      <div className="solution-heading"><div><span>REFERENCE_SOLUTION</span><h3>{hasTwoModes ? solutionMode === 'guided' ? 'Easy step-by-step solution' : 'Robust automated solution' : 'Complete step-by-step solution'}</h3><p>{hasTwoModes ? solutionMode === 'guided' ? 'Recommended if this is your first time completing the lab.' : 'Seeds the volume automatically and avoids manually copying the HTML.' : 'Run each step in order and compare it with the expected output.'}</p></div><CopyButton value={allCommands} label="COPY ALL COMMANDS" onCopied={onCopied} /></div>
+      {hasTwoModes && <div className="solution-mode-tabs"><button className={solutionMode === 'guided' ? 'active' : ''} onClick={() => changeMode('guided')}><span>01</span><div><b>Guided mode</b><small>Explained command by command</small></div></button><button className={solutionMode === 'robust' ? 'active' : ''} onClick={() => changeMode('robust')}><span>02</span><div><b>Robust mode</b><small>Automatically seeded volume</small></div></button></div>}
+      {hasTwoModes && solutionMode === 'guided' && <div className="project-tree"><span>PROJECT STRUCTURE TO CREATE</span><pre>{`docker-lab/
 ├── container1/
 │   ├── Dockerfile
 │   └── index.html
@@ -56,5 +57,5 @@ export function ExerciseSection({ category, onCopied }: { category: string; onCo
   const items = exercisesFor(category)
   const label = categoryMeta[category]?.label || category
   if (!items.length) return <section className="exercise-empty"><div><FlaskConical /></div><span>EXERCISE_INDEX / {category.toUpperCase()}</span><h2>{label} exercises are being prepared.</h2><p>The exercise tab is ready for this category. New guided labs can be added without changing the interface.</p></section>
-  return <section className="exercise-section"><div className="exercise-page-title"><span><FlaskConical /> PRACTICE LAB</span><h2>Learn by building.</h2><p>Complete the challenge first, then compare your work with the reference resolution.</p></div>{items.map((exercise) => <ExerciseCard exercise={exercise} onCopied={onCopied} key={exercise.id} />)}</section>
+  return <section className="exercise-section"><div className="exercise-page-title"><span><FlaskConical /> PRACTICE LAB</span><h2>Learn by building.</h2><p>Complete the challenge first, then compare your work with the reference resolution.</p></div>{items.map((exercise, index) => <ExerciseCard exercise={exercise} index={index} onCopied={onCopied} key={exercise.id} />)}</section>
 }

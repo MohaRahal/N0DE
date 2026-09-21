@@ -52,7 +52,7 @@ COPY index.html /usr/share/nginx/html/index.html` },
     <title>Container 1</title>
 </head>
 <body>
-    <h1>Olá, sou o Container 1</h1>
+    <h1>Hello, I am Container 1</h1>
 </body>
 </html>` },
     { name: 'container2/Dockerfile', language: 'dockerfile', content: `FROM nginx:alpine
@@ -64,54 +64,54 @@ COPY index.html /usr/share/nginx/html/index.html` },
     <title>Container 2</title>
 </head>
 <body>
-    <h1>Olá, sou o Container 2</h1>
+    <h1>Hello, I am Container 2</h1>
 </body>
 </html>` },
   ],
   beginnerSolution: [
-    { title: 'Confira se o Docker está funcionando', description: 'Abra um terminal na pasta onde você quer criar a atividade. Se este comando mostrar a versão, pode continuar.', command: 'docker --version', output: 'Docker version 27.x.x, build ...' },
-    { title: 'Crie as pastas do projeto', description: 'Crie a pasta atividade e duas subpastas. Depois, crie os quatro arquivos mostrados na seção Arquivos.', command: `mkdir -p atividade/container1 atividade/container2
-cd atividade`, output: 'Você deve estar dentro da pasta atividade.' },
-    { title: 'Comece a gravar o terminal', description: 'Use Bash, Git Bash ou WSL. A partir daqui, comandos e respostas também serão salvos em terminal-evidence.txt.', command: `script -a terminal-evidence.txt
-echo "Início da atividade: $(date)"`, output: 'Início da atividade: ...' },
-    { title: 'Crie a rede', description: 'Essa rede permitirá que os containers encontrem um ao outro pelo nome.', command: 'docker network create rede-atividade', output: 'Uma sequência grande de letras e números representa o ID da rede.' },
-    { title: 'Crie o volume', description: 'O volume continuará existindo mesmo que o Container 1 seja removido.', command: 'docker volume create volume-site', output: 'volume-site' },
-    { title: 'Construa as duas imagens', description: 'Execute dentro da pasta atividade, depois de salvar os Dockerfiles e arquivos HTML.', command: `docker build -t imagem-container1 ./container1
-docker build -t imagem-container2 ./container2
-docker images`, output: 'A lista deve mostrar imagem-container1 e imagem-container2.' },
-    { title: 'Execute o Container 1', description: 'Ele usa a rede, publica a porta 8081 e monta o volume nomeado.', command: `docker run -d \\
+    { title: 'Confirm Docker is running', description: 'Open a terminal in the folder where you want to create the lab. Continue if this command prints a version.', command: 'docker --version', output: 'Docker version 27.x.x, build ...' },
+    { title: 'Create the project folders', description: 'Create the docker-lab folder and two subfolders. Then create the four files shown in the Files section.', command: `mkdir -p docker-lab/container1 docker-lab/container2
+cd docker-lab`, output: 'You should now be inside the docker-lab folder.' },
+    { title: 'Start recording the terminal', description: 'Use Bash, Git Bash, or WSL. Commands and responses will also be stored in terminal-evidence.txt.', command: `script -a terminal-evidence.txt
+echo "Lab started: $(date)"`, output: 'Lab started: ...' },
+    { title: 'Create the network', description: 'This network lets the containers find each other by name.', command: 'docker network create activity-network', output: 'Docker returns the network ID.' },
+    { title: 'Create the volume', description: 'The volume continues to exist even if Container 1 is removed.', command: 'docker volume create site-volume', output: 'site-volume' },
+    { title: 'Build both images', description: 'Run this inside docker-lab after saving the Dockerfiles and HTML files.', command: `docker build -t container1-image ./container1
+docker build -t container2-image ./container2
+docker images`, output: 'The list should include container1-image and container2-image.' },
+    { title: 'Run Container 1', description: 'It joins the network, publishes port 8081, and mounts the named volume.', command: `docker run -d \\
   --name container1 \\
-  --network rede-atividade \\
+  --network activity-network \\
   -p 8081:80 \\
-  -v volume-site:/usr/share/nginx/html \\
-  imagem-container1`, output: 'Docker retorna o ID longo do novo container.' },
-    { title: 'Copie a página para o volume', description: 'Um volume vazio esconde o index.html da imagem. Por isso copiamos o HTML do computador para dentro do volume montado.', command: 'docker cp ./container1/index.html container1:/usr/share/nginx/html/index.html', output: 'Successfully copied ... to container1:/usr/share/nginx/html/index.html' },
-    { title: 'Execute o Container 2', description: 'Ele usa a mesma rede, mas outra porta e outro conteúdo.', command: `docker run -d \\
+  -v site-volume:/usr/share/nginx/html \\
+  container1-image`, output: 'Docker returns the new container ID.' },
+    { title: 'Copy the page into the volume', description: 'An empty volume hides the image index.html, so copy the host file into the mounted volume.', command: 'docker cp ./container1/index.html container1:/usr/share/nginx/html/index.html', output: 'Successfully copied ... to container1:/usr/share/nginx/html/index.html' },
+    { title: 'Run Container 2', description: 'It uses the same network with a different port and different content.', command: `docker run -d \\
   --name container2 \\
-  --network rede-atividade \\
+  --network activity-network \\
   -p 8082:80 \\
-  imagem-container2`, output: 'Docker retorna o ID longo do segundo container.' },
-    { title: 'Confira os dois sites', description: 'Abra os endereços no navegador ou use curl. As respostas precisam ser diferentes.', command: `curl -s http://localhost:8081
-curl -s http://localhost:8082`, output: '<h1>Olá, sou o Container 1</h1>\n<h1>Olá, sou o Container 2</h1>' },
-    { title: 'Teste Container 1 → Container 2', description: 'wget roda dentro do Container 1 e acessa o outro serviço usando somente o nome container2.', command: 'docker exec container1 wget -qO- http://container2', output: '<h1>Olá, sou o Container 2</h1>' },
-    { title: 'Teste Container 2 → Container 1', description: 'Agora faça o caminho contrário. Isso prova a comunicação nos dois sentidos.', command: 'docker exec container2 wget -qO- http://container1', output: '<h1>Olá, sou o Container 1</h1>' },
-    { title: 'Confira a rede', description: 'Na saída, procure container1 e container2 dentro da seção Containers.', command: 'docker network inspect rede-atividade', output: 'Os dois containers devem aparecer conectados à rede.' },
-    { title: 'Crie um arquivo persistente', description: 'Este arquivo será escrito dentro do volume do Container 1.', command: `docker exec container1 sh -c 'echo "Arquivo persistente" > /usr/share/nginx/html/teste.txt'
-docker exec container1 cat /usr/share/nginx/html/teste.txt`, output: 'Arquivo persistente' },
-    { title: 'Remova somente o Container 1', description: 'O container será apagado, mas o volume-site não será removido.', command: 'docker rm -f container1', output: 'container1' },
-    { title: 'Recrie usando o mesmo volume', description: 'Use exatamente o mesmo nome de volume. Não é necessário copiar o HTML novamente, pois ele já está persistido.', command: `docker run -d \\
+  container2-image`, output: 'Docker returns the second container ID.' },
+    { title: 'Check both websites', description: 'Open the addresses in a browser or use curl. The responses must be different.', command: `curl -s http://localhost:8081
+curl -s http://localhost:8082`, output: '<h1>Hello, I am Container 1</h1>\n<h1>Hello, I am Container 2</h1>' },
+    { title: 'Test Container 1 → Container 2', description: 'wget runs inside Container 1 and accesses the other service using only the container2 name.', command: 'docker exec container1 wget -qO- http://container2', output: '<h1>Hello, I am Container 2</h1>' },
+    { title: 'Test Container 2 → Container 1', description: 'Now test the opposite direction to prove bidirectional communication.', command: 'docker exec container2 wget -qO- http://container1', output: '<h1>Hello, I am Container 1</h1>' },
+    { title: 'Inspect the network', description: 'Look for container1 and container2 in the Containers section.', command: 'docker network inspect activity-network', output: 'Both containers should appear connected to the network.' },
+    { title: 'Create persistent data', description: 'This file is written inside the volume mounted by Container 1.', command: `docker exec container1 sh -c 'echo "Persistent file" > /usr/share/nginx/html/test.txt'
+docker exec container1 cat /usr/share/nginx/html/test.txt`, output: 'Persistent file' },
+    { title: 'Remove only Container 1', description: 'The container is deleted, but site-volume remains.', command: 'docker rm -f container1', output: 'container1' },
+    { title: 'Recreate it with the same volume', description: 'Use the exact same volume name. The HTML does not need to be copied again because it is already persisted.', command: `docker run -d \\
   --name container1 \\
-  --network rede-atividade \\
+  --network activity-network \\
   -p 8081:80 \\
-  -v volume-site:/usr/share/nginx/html \\
-  imagem-container1` },
-    { title: 'Comprove a persistência', description: 'Se o texto aparecer depois da recriação, o volume funcionou corretamente.', command: `docker exec container1 cat /usr/share/nginx/html/teste.txt
-curl -s http://localhost:8081/teste.txt`, output: 'Arquivo persistente\nArquivo persistente' },
-    { title: 'Registre o resultado final', description: 'Mostre os containers, o volume e finalize o arquivo de evidências.', command: `docker ps
-docker volume inspect volume-site
-echo "Atividade concluída: $(date)"
+  -v site-volume:/usr/share/nginx/html \\
+  container1-image` },
+    { title: 'Prove persistence', description: 'If the text appears after recreation, the named volume worked correctly.', command: `docker exec container1 cat /usr/share/nginx/html/test.txt
+curl -s http://localhost:8081/test.txt`, output: 'Persistent file\nPersistent file' },
+    { title: 'Record the final result', description: 'Show the containers and volume, then finish the evidence recording.', command: `docker ps
+docker volume inspect site-volume
+echo "Lab completed: $(date)"
 
-CNTRL + D`, output: 'O arquivo terminal-evidence.txt ficará dentro da pasta atividade.' },
+CTRL + D`, output: 'terminal-evidence.txt remains inside the docker-lab folder.' },
   ],
   files: [
     { name: 'service-a/Dockerfile', language: 'dockerfile', content: `FROM nginx:alpine
@@ -176,6 +176,89 @@ docker network inspect lab-network`, output: 'Data survived the container' },
     { title: 'Finish the evidence log', description: 'Record the final state. Exit the shell when finished to close tee cleanly.', command: `docker ps --filter network=lab-network
 echo "=== Lab completed at $(date) ==="
 exit` },
+  ],
+}, {
+  id: 'docker-segmented-networks',
+  category: 'docker',
+  difficulty: 'intermediate',
+  title: 'Isolation with separate Docker networks',
+  subtitle: 'Connect a frontend, fake API, and simulated backend service using isolated networks.',
+  context: 'This lab focuses only on Docker network isolation. The database is simulated by a lightweight Alpine HTTP container, so no real database configuration, credentials, or SQL tools are required.',
+  objective: 'Create frontend-net and backend-net, connect each container only to the networks it needs, and use positive and negative tests to prove that the simulated database service is isolated from the frontend.',
+  requirements: [
+    'Create the frontend-net and backend-net networks.',
+    'Run the front container only on frontend-net.',
+    'Run a lightweight simulated database service only on backend-net.',
+    'Run the api container initially on frontend-net.',
+    'Connect the api container to backend-net afterward.',
+    'Prove that front resolves and reaches api by name.',
+    'Prove that api resolves and reaches database by name.',
+    'Prove that front cannot resolve or reach database directly.',
+    'Explain why the simulated backend service does not need a port published to the host.',
+  ],
+  deliverables: [
+    'docker network inspect output for both networks.',
+    'An API HTTP response obtained from front.',
+    'A positive HTTP connectivity test between api and the simulated database service.',
+    'A negative connectivity test between front and database.',
+    'Evidence that the simulated database service has no port published to the host.',
+    'A written explanation of segmentation and reduced attack surface.',
+  ],
+  files: [{
+    name: 'architecture.txt', language: 'text', content: `HOST
+  |
+  | published port: 8080
+  v
+[ front ] -------- frontend-net -------- [ api ]
+                                           |
+                                           | also connected
+                                           v
+                                      backend-net
+                                           |
+                                           v
+                                  [ fake database ]
+
+EXPECTED RULES
+front  -> api      : ALLOWED
+api    -> database : ALLOWED
+front  -> database : BLOCKED
+host   -> database : NO PUBLISHED PORT`
+  }],
+  solution: [
+    { title: 'Remove names left by an earlier attempt', description: 'Run this only if containers from a previous attempt may still use these names.', command: `docker rm -f front api database 2>/dev/null || true`, output: 'If the containers do not exist, the command simply continues.' },
+    { title: 'Create both networks', description: 'Each network represents a different application zone.', command: `docker network create frontend-net
+docker network create backend-net`, output: 'Docker returns the frontend-net ID followed by the backend-net ID.' },
+    { title: 'Run the frontend only on the frontend network', description: 'Only the frontend port is published for browser access.', command: `docker run -d \\
+  --name front \\
+  --network frontend-net \\
+  -p 8080:80 \\
+  nginx:alpine`, output: 'Docker returns the front container ID.' },
+    { title: 'Install test tools in the frontend', description: 'bind-tools provides nslookup and busybox-extras provides nc for DNS and port tests.', command: `docker exec front apk add --no-cache bind-tools busybox-extras`, output: 'OK: packages installed' },
+    { title: 'Run a fake database service on the backend network', description: 'This is only an Alpine HTTP server used to test isolation. It is not a real database and publishes no host port.', command: `docker run -d \\
+  --name database \\
+  --network backend-net \\
+  alpine:3.20 \\
+  sh -c "mkdir -p /www && echo 'FAKE DATABASE SERVICE' > /www/index.html && httpd -f -p 9090 -h /www"`, output: 'Docker returns the fake database container ID.' },
+    { title: 'Run the fake API on the frontend network first', description: 'This lightweight Alpine container serves a simple HTTP response on port 8080.', command: `docker run -d \\
+  --name api \\
+  --network frontend-net \\
+  alpine:3.20 \\
+  sh -c "mkdir -p /www && echo 'FAKE API ONLINE' > /www/index.html && httpd -f -p 8080 -h /www"`, output: 'Docker returns the fake api container ID.' },
+    { title: 'Connect the API to the backend network', description: 'The API now joins both networks and becomes the only logical bridge between the frontend and database.', command: `docker network connect backend-net api`, output: 'No output means the connection succeeded.' },
+    { title: 'Confirm the segmentation', description: 'frontend-net should list front and api. backend-net should list api and database.', command: `docker network inspect frontend-net --format '{{range .Containers}}{{.Name}} {{end}}'
+docker network inspect backend-net --format '{{range .Containers}}{{.Name}} {{end}}'`, output: 'front api\napi database' },
+    { title: 'Test DNS from the frontend to the API', description: 'Because both share frontend-net, the api name should resolve.', command: `docker exec front nslookup api`, output: 'Name: api\nAddress: 172.x.x.x' },
+    { title: 'Test HTTP from the frontend to the API', description: 'This is the permitted path between the frontend and application tiers.', command: `docker exec front wget -qO- http://api:8080`, output: 'FAKE API ONLINE' },
+    { title: 'Test DNS from the API to the fake database', description: 'Because both share backend-net, the API should resolve the database container name.', command: `docker exec api nslookup database`, output: 'Name: database\nAddress: 172.x.x.x' },
+    { title: 'Test API access to the fake database', description: 'This HTTP request proves both name resolution and connectivity through backend-net.', command: `docker exec api wget -qO- http://database:9090`, output: 'FAKE DATABASE SERVICE' },
+    { title: 'Prove the frontend cannot resolve the database', description: 'The correct result is OK. database is not on frontend-net, so its name must not exist there.', command: `docker exec front sh -c 'nslookup database >/dev/null 2>&1 && echo "ERROR: database is visible" || echo "OK: database is not resolved by front"'`, output: 'OK: database is not resolved by front' },
+    { title: 'Prove the frontend cannot reach the service port', description: 'This second negative test confirms that the frontend cannot open a connection to the isolated service.', command: `docker exec front sh -c 'nc -zvw2 database 9090 >/dev/null 2>&1 && echo "ERROR: connection allowed" || echo "OK: front -> database blocked"'`, output: 'OK: front -> database blocked' },
+    { title: 'Prove there is no published port', description: 'The fake database listens only inside backend-net and has no HostPort mapping.', command: `docker port database
+docker inspect database --format '{{json .NetworkSettings.Ports}}'`, output: 'docker port prints no mapping\n{}' },
+    { title: 'Record the conclusion', description: 'The simulated database needs no -p because the API reaches database:9090 internally through backend-net. Not publishing it reduces exposure and attack surface.', command: `echo "front -> api: allowed"
+echo "api -> database: allowed"
+echo "front -> database: blocked"
+echo "database has no published port: backend-net access only"`, output: 'The architecture follows the principle of least exposure.' },
   ],
 }]
 
